@@ -1,10 +1,7 @@
 import spotipy
 import spotipy.util as util
-import webbrowser
-import tkinter as tk
-from PIL import Image, ImageTk
-import requests
-from io import  BytesIO
+import urllib.request
+import os
 
 # Spotify authorization variables
 username = 'jorg.eikens'
@@ -13,26 +10,20 @@ client_id = 'c9db738e9e0847ea8c7bc6acf166f29d'
 client_secret = '09dccb48fc624b04af58d16a48ae8d6d'
 redirect_uri = 'http://localhost/'
 
-def showPIL(pilImage):
-    w, h = root.winfo_screenwidth(), root.winfo_screenheight()
-    root.overrideredirect(1)
-    root.geometry("%dx%d+0+0" % (w, h))
-    root.focus_set()
-    root.bind("<Escape>", lambda e: (e.widget.withdraw(), e.widget.quit()))
-    canvas = tkinter.Canvas(root,width=w,height=h)
-    canvas.pack()
-    canvas.configure(background='black')
+# Create target Directory if don't exist
+dirName = "./currentPlayback/"
+if not os.path.exists(dirName):
+    os.mkdir(dirName)
+    print("Directory " , dirName ,  " Created ")
+else:
+    print("Directory " , dirName ,  " already exists")
 
-    imgWidth, imgHeight = pilImage.size
-
-    ratio = min(w/imgWidth, h/imgHeight)
-    imgWidth = int(imgWidth*ratio)
-    imgHeight = int(imgHeight*ratio)
-    pilImage = pilImage.resize((imgWidth,imgHeight), Image.ANTIALIAS)
-
-    image = ImageTk.PhotoImage(pilImage)
-    imagesprite = canvas.create_image(w/2,h/2,image=image)
-    root.mainloop()
+dirName = "./topTracks/"
+if not os.path.exists(dirName):
+    os.mkdir(dirName)
+    print("Directory " , dirName ,  " Created ")
+else:
+    print("Directory " , dirName ,  " already exists")
 
 def getImage():
     token = util.prompt_for_user_token(username, scope, client_id = client_id, client_secret = client_secret, redirect_uri = redirect_uri)
@@ -44,12 +35,30 @@ def getImage():
 
             if results['currently_playing_type'] == 'track' and results['item']['is_local'] == False:
                 url640 = results['item']['album']['images'][0]['url']
-                response = requests.get(url640)
-                img = Image.open(BytesIO(response.content))
-                print(url640)
+
+                imageCurrentPlayback = open("./currentPlayback/currentplayback.jpg", 'wb')
+                imageCurrentPlayback.write(urllib.request.urlopen(url640).read())
+                imageCurrentPlayback.close()
+                print("Image saved")
 
         if results == None:
             print("Not playing any track")
+
+            limit = 10
+
+            results = sp.current_user_top_tracks(limit = limit, offset = 0, time_range='short_term')
+
+            for index in range(limit):
+
+                print(results)
+
+                url640 = results['items'][index]['album']['images'][0]['url']
+
+                imageTopTracks = open("./topTracks/" + str(index) + ".jpg", 'wb')
+                imageTopTracks.write(urllib.request.urlopen(url640).read())
+                imageTopTracks.close()
+
+                print("Top Track " + str(index) + " image saved")
 
     else:
         print("Can't get token for ", username)
