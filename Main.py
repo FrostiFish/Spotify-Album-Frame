@@ -125,7 +125,7 @@ def updateImages():
     schedule.enter(1, 1, updateImages)
 
 def main():
-    schedule.absenter(0, 1, updateImages)
+    schedule.enterabs(0, 1, updateImages)
     schedule.enterabs(0, 2, launchFEH, kwargs = {'fehpath' : (path + "/currentplayback.jpg/")})
     schedule.enterabs(0, 3, checkFEHUpdate)
     schedule.enterabs(0, 4, updateFEH)
