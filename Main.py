@@ -2,12 +2,56 @@ import spotipy
 import spotipy.util as util
 import urllib.request
 import os
+import shutil
 import time
 import sched
+from subprocess import check_output
 
 path = os.getcwd()
 
 schedule = sched.scheduler(time.time, time.sleep)
+
+fehUpdated = False
+userPlayingTrack = False
+lastUserPlayingTrack = False
+
+def get_pid(name):
+    return int(check_output(["pidof", name]))
+
+def launchFEH(fehpath):
+    os.system("feh -x -F -D10 " + fehpath + " &")
+
+def killFEH():
+    os.system("kill -9 " + get_pid("feh"))
+
+def checkFEHUpdate():
+    global userPlayingTrack
+    global lastUserPlayingTrack
+
+    if userPlayingTrack != lastUserPlayingTrack:
+        fehUpdated = False
+    schedule.enter(1, 2, checkFEHUpdate)
+
+def updateFEH():
+    global fehUpdated
+
+    if userPlayingTrack and not fehUpdated:
+        killFEH()
+        print("Killed FEH")
+        launchFEH(path + "/currentplayback.jpg/")
+        print("Launched FEH")
+
+        fehUpdated = True
+
+    elif not userPlayingTrack and not fehUpdated:
+        killFEH()
+        print("Killed FEH")
+        launchFEH(path + "/topTracks/")
+        print("Launched FEH")
+
+        fehUpdated = True
+
+    schedule.enter(1, 3, updateFEH)
 
 # Spotify authorization variables
 username = 'jorg.eikens'
@@ -20,20 +64,13 @@ limit = 10
 lastCurrentPlaybackID = None
 lastTopTracks = [None] * limit
 
-# Create target Directory if don't exist
-dirName = "./currentPlayback/"
-if not os.path.exists(dirName):
-    os.mkdir(dirName)
-    print("Directory " , dirName ,  " Created ")
-else:
-    print("Directory " , dirName ,  " already exists")
-
 dirName = "./topTracks/"
 if not os.path.exists(dirName):
     os.mkdir(dirName)
     print("Directory " , dirName ,  " Created ")
 else:
     print("Directory " , dirName ,  " already exists")
+    
 
 def updateImages():
     token = util.prompt_for_user_token(username, scope, client_id = client_id, client_secret = client_secret, redirect_uri = redirect_uri)
@@ -45,20 +82,22 @@ def updateImages():
 
         if results:
             print("User is playing a track")
+            userPlayingTrack = True
 
             if results['currently_playing_type'] == 'track' and results['item']['id'] != lastCurrentPlaybackID and results['item']['is_local'] == False:
                 url640 = results['item']['album']['images'][0]['url']
                 lastCurrentPlaybackID = results['item']['id']
 
-                imageCurrentPlayback = open("./currentPlayback/currentplayback.jpg", 'wb')
+                imageCurrentPlayback = open("./currentplayback.jpg", 'wb')
                 imageCurrentPlayback.write(urllib.request.urlopen(url640).read())
                 imageCurrentPlayback.close()
 
                 print("User changed track")
-                print(path + "/currentPlayback/currentplayback.jpg updated")
+                print(path + "/currentplayback.jpg updated")
 
         if results == None:
             print("User is not playing any track")
+            userPlayingTrack = False
 
             results = sp.current_user_top_tracks(limit = limit, offset = 0, time_range='short_term')
 
@@ -87,6 +126,8 @@ def updateImages():
 
 def main():
     schedule.enter(1, 1, updateImages)
+    schedule.enter(1, 2, checkFEHUpdate)
+    schedule.enter(1, 3, updateFEH)
     schedule.run()
 
 if __name__ == '__main__':
