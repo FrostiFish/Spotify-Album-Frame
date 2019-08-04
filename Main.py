@@ -70,7 +70,7 @@ if not os.path.exists(dirName):
     print("Directory " , dirName ,  " Created ")
 else:
     print("Directory " , dirName ,  " already exists")
-    
+
 
 def updateImages():
     token = util.prompt_for_user_token(username, scope, client_id = client_id, client_secret = client_secret, redirect_uri = redirect_uri)
@@ -126,8 +126,9 @@ def updateImages():
 
 def main():
     schedule.enter(1, 1, updateImages)
-    schedule.enter(1, 2, checkFEHUpdate)
-    schedule.enter(1, 3, updateFEH)
+    schedule.enter(1, 2, launchFEH, kwargs = {'fehpath' : (path + "/currentplayback.jpg/")})
+    schedule.enter(1, 3, checkFEHUpdate)
+    schedule.enter(1, 4, updateFEH)
     schedule.run()
 
 if __name__ == '__main__':
